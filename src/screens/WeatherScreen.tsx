@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Keyboard,
   ScrollView,
@@ -33,20 +33,26 @@ type Phase =
 export function WeatherScreen() {
   const [query, setQuery] = useState("");
   const [phase, setPhase] = useState<Phase>({ kind: "idle" });
+  // Monotonic id per request: a slow old response must never
+  // overwrite the result of a newer search or city selection.
+  const requestSeq = useRef(0);
 
   const search = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
     Keyboard.dismiss();
+    const seq = ++requestSeq.current;
     setPhase({ kind: "searching" });
     try {
       const cities = await geocodeCity(trimmed);
+      if (seq !== requestSeq.current) return;
       setPhase(
         cities.length === 0
           ? { kind: "noResults", query: trimmed }
           : { kind: "cities", cities },
       );
     } catch {
+      if (seq !== requestSeq.current) return;
       setPhase({
         kind: "error",
         message: "Couldn't search for cities",
@@ -56,11 +62,14 @@ export function WeatherScreen() {
   }, []);
 
   const selectCity = useCallback(async (city: GeoResult) => {
+    const seq = ++requestSeq.current;
     setPhase({ kind: "loadingForecast", city });
     try {
       const forecast = await getForecast(city.latitude, city.longitude);
+      if (seq !== requestSeq.current) return;
       setPhase({ kind: "ready", city, forecast });
     } catch {
+      if (seq !== requestSeq.current) return;
       setPhase({
         kind: "error",
         message: "Couldn't load the forecast",
