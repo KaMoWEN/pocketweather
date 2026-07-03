@@ -4,7 +4,7 @@ A React Native weather app built with Expo. Search any city, get current conditi
 
 💻 **Code:** this repository · 📱 Runs in Expo Go
 
-![Demo](./demo.gif)
+<img src="./demo.gif" width="280" alt="App demo: searching for a city and viewing the 7-day forecast" />
 
 ## Features
 
